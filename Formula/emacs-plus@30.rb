@@ -191,7 +191,7 @@ class EmacsPlusAT30 < EmacsBase
         end
       end
 
-      system "make", "CC=#{CC}"
+      system "make", "CC=#{cc}"
 
       system "make", "install"
 
@@ -249,7 +249,7 @@ class EmacsPlusAT30 < EmacsBase
         end
       end
 
-      system "make", "CC=#{CC}"
+      system "make", "CC=#{cc}"
       system "make", "install"
     end
 
