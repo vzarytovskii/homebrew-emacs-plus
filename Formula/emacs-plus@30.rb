@@ -122,13 +122,22 @@ class EmacsPlusAT30 < EmacsBase
     args << "--with-native-compilation" if build.with? "native-comp"
     args << "--without-compress-install" if build.without? "compress-install"
 
+    # Set compiler to gcc if building with native-comp
+    cc = "#{Formula["gcc"].opt_bin}/gcc-#{Formula["gcc"].any_installed_version.major}" if build.with? "native-comp"
+
     ENV.append "CFLAGS", "-g -Og" if build.with? "debug"
+    ENV.append "CFLAGS", "-O3 -pipe -mtune=native -march=native -fomit-frame-pointer" if build.without? "debug"
     ENV.append "CFLAGS", "-DFD_SETSIZE=10000 -DDARWIN_UNLIMITED_SELECT"
 
     # Necessary for libgccjit library discovery
     ENV.append "CPATH", "-I#{Formula["libgccjit"].opt_include}" if build.with? "native-comp"
     ENV.append "LIBRARY_PATH", "-L#{Formula["libgccjit"].opt_lib}" if build.with? "native-comp"
     ENV.append "LDFLAGS", "-L#{Formula["libgccjit"].opt_lib}" if build.with? "native-comp"
+
+    # Include gmp
+    ENV.append "CPATH", "-I#{Formula["gmp"].opt_include}" if build.with? "native-comp"
+    ENV.append "LIBRARY_PATH", "-L#{Formula["gmp"].opt_lib}" if build.with? "native-comp"
+    ENV.append "LDFLAGS", "-L#{Formula["gmp"].opt_lib}" if build.with? "native-comp"
 
     args <<
       if build.with? "dbus"
@@ -182,9 +191,9 @@ class EmacsPlusAT30 < EmacsBase
         end
       end
 
-      system "gmake"
+      system "make", "CC=#{CC}"
 
-      system "gmake", "install"
+      system "make", "install"
 
       icons_dir = buildpath/"nextstep/Emacs.app/Contents/Resources"
       ICONS_CONFIG.each_key do |icon|
@@ -240,8 +249,8 @@ class EmacsPlusAT30 < EmacsBase
         end
       end
 
-      system "gmake"
-      system "gmake", "install"
+      system "make", "CC=#{CC}"
+      system "make", "install"
     end
 
     # Follow MacPorts and don't install ctags from Emacs. This allows Vim
