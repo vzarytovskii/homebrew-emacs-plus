@@ -18,7 +18,6 @@ class EmacsPlusAT30 < EmacsBase
   option "with-debug", "Build with debug symbols and debugger friendly optimizations"
   option "with-xwidgets", "Experimental: build with xwidgets support"
   option "with-no-frame-refocus", "Disables frame re-focus (ie. closing one frame does not refocus another one)"
-  option "with-native-comp", "Build with native compilation"
   option "with-compress-install", "Build with compressed install optimization"
   option "with-poll", "Experimental: use poll() instead of select() to support > 1024 file descriptors`"
 
@@ -26,6 +25,7 @@ class EmacsPlusAT30 < EmacsBase
   # Dependencies
   #
 
+  fails_with :clang
   depends_on "make" => :build
   depends_on "autoconf" => :build
   depends_on "gnu-sed" => :build
@@ -45,6 +45,12 @@ class EmacsPlusAT30 < EmacsBase
   depends_on "imagemagick" => :optional
   depends_on "dbus" => :optional
   depends_on "mailutils" => :optional
+  depends_on "libgccjit" => :recommended
+  depends_on "gcc" => :build
+  depends_on "gmp" => :build
+  depends_on "libjpeg" => :build
+  depends_on "zlib" => :build
+
 
   if build.with? "x11"
     depends_on "libxaw"
@@ -52,13 +58,6 @@ class EmacsPlusAT30 < EmacsBase
     depends_on "fontconfig" => :recommended
   end
 
-  if build.with? "native-comp"
-    depends_on "libgccjit" => :recommended
-    depends_on "gcc" => :build
-    depends_on "gmp" => :build
-    depends_on "libjpeg" => :build
-    depends_on "zlib" => :build
-  end
 
   #
   # Incompatible options
@@ -119,25 +118,25 @@ class EmacsPlusAT30 < EmacsBase
     args << "--with-xml2"
     args << "--with-gnutls"
 
-    args << "--with-native-compilation" if build.with? "native-comp"
+    args << "--with-native-compilation=aot"
     args << "--without-compress-install" if build.without? "compress-install"
 
     # Set compiler to gcc if building with native-comp
-    cc = "#{Formula["gcc"].opt_bin}/gcc-#{Formula["gcc"].any_installed_version.major}" if build.with? "native-comp"
+    cc = "#{Formula["gcc"].opt_bin}/gcc-#{Formula["gcc"].any_installed_version.major}"
 
     ENV.append "CFLAGS", "-g -Og" if build.with? "debug"
     ENV.append "CFLAGS", "-O3 -pipe -mtune=native -march=native -fomit-frame-pointer" if build.without? "debug"
     ENV.append "CFLAGS", "-DFD_SETSIZE=10000 -DDARWIN_UNLIMITED_SELECT"
 
     # Necessary for libgccjit library discovery
-    ENV.append "CPATH", "-I#{Formula["libgccjit"].opt_include}" if build.with? "native-comp"
-    ENV.append "LIBRARY_PATH", "-L#{Formula["libgccjit"].opt_lib}" if build.with? "native-comp"
-    ENV.append "LDFLAGS", "-L#{Formula["libgccjit"].opt_lib}" if build.with? "native-comp"
+    ENV.append "CPATH", "-I#{Formula["libgccjit"].opt_include}"
+    ENV.append "LIBRARY_PATH", "-L#{Formula["libgccjit"].opt_lib}"
+    ENV.append "LDFLAGS", "-L#{Formula["libgccjit"].opt_lib}"
 
     # Include gmp
-    ENV.append "CPATH", "-I#{Formula["gmp"].opt_include}" if build.with? "native-comp"
-    ENV.append "LIBRARY_PATH", "-L#{Formula["gmp"].opt_lib}" if build.with? "native-comp"
-    ENV.append "LDFLAGS", "-L#{Formula["gmp"].opt_lib}" if build.with? "native-comp"
+    ENV.append "CPATH", "-I#{Formula["gmp"].opt_include}"
+    ENV.append "LIBRARY_PATH", "-L#{Formula["gmp"].opt_lib}"
+    ENV.append "LDFLAGS", "-L#{Formula["gmp"].opt_lib}"
 
     args <<
       if build.with? "dbus"
@@ -191,9 +190,9 @@ class EmacsPlusAT30 < EmacsBase
         end
       end
 
-      system "make", "CC=#{cc}"
+      system "gmake", "CC=#{cc}"
 
-      system "make", "install"
+      system "gmake", "install"
 
       icons_dir = buildpath/"nextstep/Emacs.app/Contents/Resources"
       ICONS_CONFIG.each_key do |icon|
