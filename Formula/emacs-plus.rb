@@ -34,10 +34,9 @@ class EmacsPlus < EmacsBase
   url "https://github.com/emacs-mirror/emacs.git", :branch => "master"
   inject_icon_options
 
-  opoo "The option --with-no-frame-refocus is not required anymore in emacs-plus@30." if build.with? "no-frame-refocus"
   local_patch "fix-window-role", sha: "1f8423ea7e6e66c9ac6dd8e37b119972daa1264de00172a24a79a710efcb8130"
   local_patch "system-appearance", sha: "d6ee159839b38b6af539d7b9bdff231263e451c1fd42eec0d125318c9db8cd92"
-  local_patch "poll", sha: "052eacac5b7bd86b466f9a3d18bff9357f2b97517f463a09e4c51255bdb14648" if build.with? "poll"
+  local_patch "poll", sha: "052eacac5b7bd86b466f9a3d18bff9357f2b97517f463a09e4c51255bdb14648"
   local_patch "round-undecorated-frame", sha: "7451f80f559840e54e6a052e55d1100778abc55f98f1d0c038a24e25773f2874"
 
   def initialize(*args, **kwargs, &block)
@@ -58,25 +57,31 @@ class EmacsPlus < EmacsBase
       --enable-locallisppath=#{HOMEBREW_PREFIX}/share/emacs/site-lisp
       --infodir=#{info}/emacs
       --prefix=#{prefix}
-      --with-xml2
+      --disable-ns-self-contained
+      --with-cairo
+      --with-cocoa
       --with-gnutls
-      --with-native-compilation=aot
-      --without-compress-install
-      --without-dbus
-      --with-imagemagick
+      --with-json
+      --with-mailutils
       --with-modules
+      --with-native-compilation=aot
+      --with-ns
+      --with-poll
       --with-rsvg
       --with-webp
+      --with-xml2
       --with-xwidgets
-      --with-cocoa
-      --with-ns
-      --disable-ns-self-contained
-      --with-poll
+      --without-compress-install
+      --without-dbus
+      --without-imagemagick
     ]
 
-    ENV.append "CFLAGS", "-g -Og" if build.with? "debug"
-    ENV.append "CFLAGS", "-O3 -pipe -mtune=native -march=native -fomit-frame-pointer" if build.without? "debug"
+    ENV.append "CFLAGS", "-O3 -pipe -mtune=native -march=native -fomit-frame-pointer"
     ENV.append "CFLAGS", "-DFD_SETSIZE=10000 -DDARWIN_UNLIMITED_SELECT"
+
+    ENV.append "CPATH", "-I#{Formula["gcc"].opt_include}"
+    ENV.append "LIBRARY_PATH", "-L#{Formula["gcc"].opt_lib}"
+    ENV.append "LDFLAGS", "-L#{Formula["gcc"].opt_lib}"
 
     ENV.append "CPATH", "-I#{Formula["libgccjit"].opt_include}"
     ENV.append "LIBRARY_PATH", "-L#{Formula["libgccjit"].opt_lib}"
@@ -98,7 +103,7 @@ class EmacsPlus < EmacsBase
 
     system "./autogen.sh"
     system "./configure", *args
-    system "gmake", "CC=#{cc}"
+    system "gmake","-j 10", "CC=#{cc}"
     system "gmake", "install"
 
     icons_dir = buildpath/"nextstep/Emacs.app/Contents/Resources"
